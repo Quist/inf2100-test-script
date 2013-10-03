@@ -15,10 +15,14 @@ def main():
 	clean(output_dir)
 
 	if(len(sys.argv)>1):
-		compile_files([sys.argv[1]]) 
-		save_log_files(sys.argv[1])
+		if(sys.argv[1].endswith('/')):
+			compile_files(get_cflat_files(sys.argv[1]))
+			clean(testfiles_dir)
+		else:
+			compile_files([sys.argv[1]]) 
+			save_log_files(sys.argv[1])
 	else:
-		compile_files(get_testfiles())
+		compile_files(get_cflat_files(testfiles_dir))
 		clean(testfiles_dir)
 
 #Compile all files in paths list
@@ -38,8 +42,8 @@ def compile_files(paths):
 def on_error(filepath,output,error_output,compile_cmd):
 	_dir,basename = os.path.split(filepath)
 	print("ERROR while compiling %s" %(basename))
-	print("cmd: " + compile_cmd)
-	print("_____________________________")
+	print("Compiled with the command: " + compile_cmd)
+	print("____________________________________")
 	print(output)
 	print(error_output)
 
@@ -59,9 +63,9 @@ def clean(_dir):
 	for f in filelist:
 		os.remove(_dir +f)
 
-#Retrives all testfiles in the testfile folder
-def get_testfiles():
-	filelist = [ testfiles_dir + f  for f in os.listdir(testfiles_dir) if f.endswith(".cflat")]
+#Retrives all cflat files in dir
+def get_cflat_files(dir_path):
+	filelist = [ dir_path + f  for f in os.listdir(dir_path) if f.endswith(".cflat")]
 	return filelist
 
 main()
