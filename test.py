@@ -9,9 +9,6 @@ compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
 testfiles_dir = './testfiles/'
 output_dir = './output/'
 
-args = None
-
-
 def main():
 	args = parse_args()
 	init_output_folder()
