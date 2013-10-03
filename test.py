@@ -4,15 +4,16 @@ import subprocess
 import os
 import argparse
 
-compiler_path = '../Cflat.jar'
+dirname = os.path.dirname(sys.argv[0])
+compiler_path = dirname + '/../Cflat.jar'
+testfiles_dir = dirname + '/testfiles/'
+output_dir = dirname + '/output/'
+
 compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
-testfiles_dir = './testfiles/'
-output_dir = './output/'
 
 def main():
 	args = parse_args()
 	init_output_folder()
-
 	if args.dir.endswith('/'):
 		compile_files(get_cflat_files(args.dir))
 		save_log_files(args.dir)
@@ -30,6 +31,7 @@ def parse_args():
 def compile_files(paths):
 	for filepath in paths:
 		cmd = compile_cmd + filepath
+
 		cflat_compile_process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		
 		error_output = cflat_compile_process.communicate()[1]
@@ -43,11 +45,10 @@ def compile_files(paths):
 def on_error(filepath,error_output,compile_cmd):
 	_dir,basename = os.path.split(filepath)
 	print("%s: ERROR" %(basename))
-	print("Compiler output:")
+	print("Output:")
 	print("\t"+str(error_output))
 
 	save_log_files(_dir+'/')
-	clean(_dir+'/')
 	exit()
 
 def init_output_folder():
