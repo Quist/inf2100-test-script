@@ -19,7 +19,7 @@ def main():
 		save_log_files(args.dir)
 	else :
 		compile_files([args.dir])
-		save_log_files(os.path.split(args.dir)[0])
+		save_log_files(os.path.dirname(args.dir)+'/')
 
 def parse_args():
 	parser = argparse.ArgumentParser(description='automate your compile testing')
@@ -39,6 +39,7 @@ def compile_files(paths):
 
 		if returncode != 0:
 			on_error(filepath,error_output,cmd)
+
 		else :
 			print("%s: OK" %os.path.basename(filepath))
 
