@@ -2,70 +2,74 @@
 import sys
 import subprocess
 import os
+import argparse
 
-compiler_path = '../Cflat.jar'
+dirname = os.path.dirname(sys.argv[0])
+compiler_path = dirname + '/../Cflat.jar'
+testfiles_dir = dirname + '/testfiles/'
+output_dir = dirname + '/output/'
+
 compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
-testfiles_dir = './testfiles/'
-output_dir = './output/'
 
-#cleans the outfolder for .log and .s files
-#if no argument is provided, the script will try to compile all cflat files in the testfolder
-#if a argument is provided, the script will try to compile the file provided
 def main():
-	clean(output_dir)
+	args = parse_args()
+	init_output_folder()
+	if args.dir.endswith('/'):
+		compile_files(get_cflat_files(args.dir))
+		save_log_files(args.dir)
+	else :
+		compile_files([args.dir])
+		save_log_files(os.path.split(args.dir)[0])
 
-	if(len(sys.argv)>1):
-		if(sys.argv[1].endswith('/')):
-			compile_files(get_cflat_files(sys.argv[1]))
-			clean(testfiles_dir)
-		else:
-			compile_files([sys.argv[1]]) 
-			save_log_files(sys.argv[1])
-	else:
-		compile_files(get_cflat_files(testfiles_dir))
-		clean(testfiles_dir)
+def parse_args():
+	parser = argparse.ArgumentParser(description='automate your compile testing')
+	parser.add_argument('dir', nargs='?', default=testfiles_dir,help='optionaly specify a file or folder to test')
+	return parser.parse_args()
+
 
 #Compile all files in paths list
 def compile_files(paths):
-	for file_path in paths:
-		cmd = compile_cmd + file_path
+	for filepath in paths:
+		cmd = compile_cmd + filepath
+
 		cflat_compile_process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		
-		output = cflat_compile_process.communicate()
+		error_output = cflat_compile_process.communicate()[1]
 		returncode = cflat_compile_process.returncode
 
 		if returncode != 0:
-			on_error(file_path,output[0],output[1],cmd)
+			on_error(filepath,error_output,cmd)
+		else :
+			print("%s: OK" %filepath)
 
-#Prints an error message to the console.
-#Removes all unwanted .log and .s files
-def on_error(filepath,output,error_output,compile_cmd):
+def on_error(filepath,error_output,compile_cmd):
 	_dir,basename = os.path.split(filepath)
-	print("ERROR while compiling %s" %(basename))
-	print("Compiled with the command: " + compile_cmd)
-	print("____________________________________")
-	print(output)
-	print(error_output)
+	print("%s: ERROR" %(basename))
+	print("Output:")
+	print("\t"+str(error_output))
 
 	save_log_files(_dir+'/')
-	clean(_dir+'/')
 	exit()
 
-#moves .log and .s files to outfolder
+def init_output_folder():
+	if os.path.exists(output_dir):
+		clean(output_dir)
+	else:
+		os.makedirs(output_dir)
+
 def save_log_files(_dir):
 	filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")]
 	for f in filelist:
 		os.rename(_dir + f,output_dir+f)
 
-#removes all .log and .s files
 def clean(_dir):
 	filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")  ]
 	for f in filelist:
 		os.remove(_dir +f)
 
-#Retrives all cflat files in dir
 def get_cflat_files(dir_path):
 	filelist = [ dir_path + f  for f in os.listdir(dir_path) if f.endswith(".cflat")]
 	return filelist
+
 
 main()
