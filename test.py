@@ -40,16 +40,13 @@ def compile_files(paths):
 		if returncode != 0:
 			on_error(filepath,error_output,cmd)
 		else :
-			print("%s: OK" %filepath)
+			print("%s: OK" %os.path.basename(filepath))
 
 def on_error(filepath,error_output,compile_cmd):
 	_dir,basename = os.path.split(filepath)
 	print("%s: ERROR" %(basename))
 	print("Output:")
 	print("\t"+str(error_output))
-
-	save_log_files(_dir+'/')
-	exit()
 
 def init_output_folder():
 	if os.path.exists(output_dir):
