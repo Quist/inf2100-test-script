@@ -37,6 +37,8 @@ def compile_files(paths):
 		error_output = cflat_compile_process.communicate()[1]
 		returncode = cflat_compile_process.returncode
 
+		print("\n---------------------------------------------------------------")
+		
 		if returncode != 0:
 			on_error(filepath,error_output,cmd)
 
