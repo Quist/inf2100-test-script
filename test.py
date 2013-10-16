@@ -1,55 +1,37 @@
 #!/usr/bin/env python3
 import sys
-import subprocess
+import subprocess,threading
 import os
 import argparse
 
+#Define paths
 dirname = os.path.dirname(sys.argv[0])
 compiler_path = dirname + '/../Cflat.jar'
 testfiles_dir = dirname + '/testfiles/'
 output_dir = dirname + '/output/'
 
-compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
+compile_timeout = 2
 
 def main():
 	args = parse_args()
-	init_output_folder()
-	if args.dir.endswith('/'):
-		compile_files(get_cflat_files(args.dir))
-		save_log_files(args.dir)
-	else :
-		compile_files([args.dir])
-		save_log_files(os.path.dirname(args.dir)+'/')
+	compile_files(get_target_files(args.path))
+	#init_output_folder()
 
 def parse_args():
 	parser = argparse.ArgumentParser(description='automate your compile testing')
-	parser.add_argument('dir', nargs='?', default=testfiles_dir,help='optionaly specify a file or folder to test')
+	parser.add_argument('path', nargs='?', default=testfiles_dir,help='optionaly specify path to a file or folder to test')
 	return parser.parse_args()
 
+def get_target_files(path):
+	if path.endswith('/'):
+		return get_cflat_files(path)
+	else :
+		return [args.path]
 
-#Compile all files in paths list
-def compile_files(paths):
-	for filepath in paths:
-		cmd = compile_cmd + filepath
-
-		cflat_compile_process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		
-		error_output = cflat_compile_process.communicate()[1]
-		returncode = cflat_compile_process.returncode
-
-		print("\n---------------------------------------------------------------")
-		
-		if returncode != 0:
-			on_error(filepath,error_output,cmd)
-
-		else :
-			print("%s: OK" %os.path.basename(filepath))
-
-def on_error(filepath,error_output,compile_cmd):
-	_dir,basename = os.path.split(filepath)
-	print("%s: ERROR" %(basename))
-	print("Output:")
-	print("\t"+str(error_output))
+def compile_files(target_paths):
+	compiler = Compiler()
+	for filepath in target_paths:
+		compiler.compile(filepath,compile_timeout)
 
 def init_output_folder():
 	if os.path.exists(output_dir):
@@ -71,5 +53,48 @@ def get_cflat_files(dir_path):
 	filelist = [ dir_path + f  for f in os.listdir(dir_path) if f.endswith(".cflat")]
 	return filelist
 
+class Compiler():
+	def __init__(self):
+		self.cmd = 'java -jar ' + compiler_path + ' -testparser '
+		self.process = None
+		self.err_out = None
 
+	def compile(self,filepath,timeout):
+		def target():
+			cmd = self.cmd + filepath
+			self.process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+			self.err_out = str(self.process.communicate()[1])
+
+		def check_thread():
+			print("------------------------------------------")
+			if thread.is_alive():
+				self.process.terminate()
+				thread.join()
+				self.on_timeout()
+			elif self.process.returncode != 0:
+				print(self.on_compile_error())
+			else:
+				print(self.print_success())
+
+		self.filename = os.path.split(filepath)[1]
+		thread = threading.Thread(target=target)
+		thread.start()
+		thread.join(timeout)
+		check_thread()
+
+
+	def on_compile_error(self):
+		print_error(self.err_out)
+
+	def on_timeout(self):
+		self.print_error("Timeout after %d seconds" %compile_timeout)
+	
+	def print_error(self,msg):
+		print("%s: ERROR" %(self.filename))
+		print("Output:")
+		print("\t%s" %msg)
+
+	def print_success(self):
+		print("%s: OK" %(self.filename))
 main()
+
