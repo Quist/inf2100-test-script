@@ -10,7 +10,7 @@ compiler_path = dirname + '/../Cflat.jar'
 testfiles_dir = dirname + '/testfiles/'
 output_dir = dirname + '/output/'
 
-compile_timeout = 2
+compile_timeout = 5
 
 def main():
 	args = parse_args()
@@ -26,7 +26,7 @@ def get_target_files(path):
 	if path.endswith('/'):
 		return get_cflat_files(path)
 	else :
-		return [args.path]
+		return [path]
 
 def compile_files(target_paths):
 	compiler = Compiler()
@@ -72,19 +72,19 @@ class Compiler():
 				thread.join()
 				self.on_timeout()
 			elif self.process.returncode != 0:
-				print(self.on_compile_error())
+				self.on_compile_error()
 			else:
-				print(self.print_success())
+				self.print_success()
 
 		self.filename = os.path.split(filepath)[1]
 		thread = threading.Thread(target=target)
 		thread.start()
-		thread.join(timeout)
+		thread.join(compile_timeout)
 		check_thread()
 
 
 	def on_compile_error(self):
-		print_error(self.err_out)
+		self.print_error(self.err_out)
 
 	def on_timeout(self):
 		self.print_error("Timeout after %d seconds" %compile_timeout)
