@@ -22,23 +22,29 @@ class CompileTester:
 
 	def compile_files(self):
 		target_paths = get_target_files(self.args.path)
+		successfull_compilations = 0
 		for filepath in target_paths:
 			basename = os.path.basename(filepath)
 			try:
 				self.compiler.compile(filepath)
+				successfull_compilations+= 1
+				self.print_success(basename)
 			except CompileException as e:
 				self.print_error(str(e),basename)
 			except TimeoutException as e:
 				self.print_error(str(e),basename)
+
+		print("\n%d/%d successfull tests\n" %(successfull_compilations,len(target_paths)))
 	
 	def print_error(self,msg,basename):
-		print("------------------------------------------")
 		print("%s: ERROR" %(basename))
 		print("Output:")
 		print("\t%s" %msg)
+		print("------------------------------------------")
 
 	def print_success(self,basename):
 		print("%s: OK" %(basename))
+		print("------------------------------------------")
 	
 	def init_output_folder():
 		if os.path.exists(output_dir):
@@ -55,8 +61,6 @@ class CompileTester:
 		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")  ]
 		for f in filelist:
 			os.remove(_dir +f)
-
-
 
 class Compiler():
 	compile_timeout = 2
