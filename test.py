@@ -140,10 +140,10 @@ class Testcase():
 			self.compiler.compile(self.filepath)
 			return True
 		except TimeoutException as e:
-			self.compilator_output = "Compilator error:\n\t%s\n" %str(e)
+			self.compilator_output = "\tCompilator error:\n\t\t%s\n" %str(e)
 			return False
 		except CompileException as e:
-			self.compilator_output = "Compilator error:\n\t%s\n"%str(e)
+			self.compilator_output = "\tCompilator error:\n\t\t%s\n"%str(e)
 			return False
 
 	def _diff(self):
@@ -151,7 +151,7 @@ class Testcase():
 			LogDiffer.diff(self.filepath)
 			return True
 		except CompareException as e:
-			self.differ_output = 'LogDiffer error:\n\t'+str(e)
+			self.differ_output = '\tLogDiffer error:\n\t\t'+str(e)
 			return False
 
 class Compiler():
@@ -182,8 +182,8 @@ class Compiler():
 class LogDiffer():
 
 	def diff(filepath):
-
-		file_basename = os.path.basename(filepath).split(".cflat")[0]
+		basename = os.path.basename(filepath)
+		file_basename = basename.split(".cflat")[0]
 		full_path = os.path.dirname(filepath) + '/' + file_basename
 		try:
 			exp_file = open(full_path + '.ref.log','r')
@@ -191,9 +191,9 @@ class LogDiffer():
 		except Exception as e:
 			raise CompareException("no diffing performed: %s" %str(e))
 
-		LogDiffer._compare(exp_file,act_file)
+		LogDiffer._compare(exp_file,act_file,file_basename+".log")
 
-	def _compare(exp_file,act_file):
+	def _compare(exp_file,act_file,basename):
 		exp_line = ""
 		act_line = ""
 		act_line_number = 0
@@ -205,7 +205,7 @@ class LogDiffer():
 				exp_line = exp_line.split("Parser:")[1].strip()
 				act_line = act_line.split("Parser:")[1].strip()
 				if not exp_line == act_line:
-					raise CompareException("%s expected, but found %s on line number %d" %(exp_line,act_line,act_line_number))
+					raise CompareException("%s expected, but found %s on line number %d in %s" %(exp_line,act_line,act_line_number,basename))
 
 
 
