@@ -5,52 +5,60 @@ import os
 import argparse
 
 #Define paths
-testfiles_dir = os.path.dirname(sys.argv[0]) + '/testfiles/'
-#output_dir = dirname + '/output/'
-
+testfile_dirname = os.path.dirname(sys.argv[0]) + '/testfiles/'
 
 class CompileTester:
 	def __init__(self):
-		self.args = parse_args()
+		self.args = CompileTester.parse_args()
 		self.path = os.path.dirname(sys.argv[0])
-		project_root_path = self.path + '/../'
-		self.compiler = Compiler(project_root_path)
+		self.project_root_path = self.path + '/../'
 
+		if self.build() != 0:
+			print("\nbuild failed, exiting..")
+			exit()
+		print("\nant build successfull")
+
+		CompileTester.clean(testfile_dirname)
 		#Do the testing
-		print("\n\nstarting testing..\n")
-		self.compile_files()
+		print("starting testing..\n")
+		self.test()
 
-	def compile_files(self):
-		target_paths = get_target_files(self.args.path)
-		successfull_compilations = 0
-		for filepath in target_paths:
-			basename = os.path.basename(filepath)
-			try:
-				self.compiler.compile(filepath)
-				successfull_compilations+= 1
-				self.print_success(basename)
-			except CompileException as e:
-				self.print_error(str(e),basename)
-			except TimeoutException as e:
-				self.print_error(str(e),basename)
+	def parse_args():
+		parser = argparse.ArgumentParser(description='automate your compile testing')
+		parser.add_argument('path', nargs='?', default=testfile_dirname,help='optionaly specify path to a file or folder to test')
+		return parser.parse_args()
 
-		print("\n%d/%d successfull tests\n" %(successfull_compilations,len(target_paths)))
-	
-	def print_error(self,msg,basename):
-		print("%s: ERROR" %(basename))
-		print("Output:")
-		print("\t%s" %msg)
-		print("------------------------------------------")
+	def build(self):
+		cur_dir = os.getcwd()
+		os.chdir(self.project_root_path)
+		process = subprocess.Popen("ant",stdout=subprocess.PIPE)
+		output = process.communicate()[0]
+		os.chdir(cur_dir)
+		return process.returncode
 
-	def print_success(self,basename):
-		print("%s: OK" %(basename))
-		print("------------------------------------------")
-	
-	def init_output_folder():
-		if os.path.exists(output_dir):
-			clean(output_dir)
-		else:
-			os.makedirs(output_dir)
+	def test(self):
+		testcases = self.get_testcases(self.args.path)
+		successfull_compilations =0
+		for test in testcases:
+			test.test()
+			print(test)
+			successfull_compilations += test.result
+			print("--------------------------------------------------")
+
+		print("\n%d/%d successfull tests\n" %(successfull_compilations,len(testcases)))
+
+	def get_testcases(self,path):
+		compiler = Compiler(self.project_root_path+'Cflat.jar')
+		ref_compiler = Compiler(self.path + '/ref-cflat.jar')
+		
+		if path.endswith('/'):
+			testcases = []
+			filelist = [ path + f  for f in os.listdir(path) if f.endswith(".cflat")]
+			for f in filelist:
+				testcases.append(Testcase(f,compiler,ref_compiler))
+			return testcases
+		else :
+			return Testcase(path,compiler,ref_compiler)
 
 	def save_log_files(_dir):
 		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")]
@@ -58,24 +66,98 @@ class CompileTester:
 			os.rename(_dir + f,output_dir+f)
 
 	def clean(_dir):
-		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")  ]
+		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s") or f.endswith(".ref.log")  ]
 		for f in filelist:
 			os.remove(_dir +f)
 
+class TimeoutException(Exception):
+	def __init__(self):
+		Exception.__init__(self,"Timeout after %d seconds" %Compiler.compile_timeout)
+
+class CompileException(Exception):
+	def __init__(self, message):
+		Exception.__init__(self,message)
+
+class CompareException(Exception):
+	def __init__(self, message):
+		Exception.__init__(self,message)	
+
+class Testcase():
+	def __init__(self,filepath,compiler,ref_compiler):
+		self.result = 0
+		self.ref_compilator_output = ""
+		self.compilator_output =""
+		self.differ_output = ""
+
+		self.compiler = compiler
+		self.ref_compiler = ref_compiler
+		self.filepath = filepath
+		self.basename = os.path.basename(filepath)
+
+	def __str__(self):
+		output = "%s: " %self.basename
+		if self.result == 1:
+			output+=("OK")
+			return output
+		output += "ERROR\n"
+
+		output +=self.ref_compilator_output
+		output +=self.compilator_output
+		output +=self.differ_output
+		return output
+
+
+	def test(self):
+		if not self._compile_reference():
+			self.result = 0
+			return
+
+		if not self._compile():
+			self._diff()
+			self.result = 0
+		else:
+			if self._diff():
+				self.result = 1
+			else:
+				self.result =0
+
+	def _compile_reference(self):
+		try:
+			self.ref_compiler.compile(self.filepath)
+			self._save_reference_log_file()
+			return True
+		except CompileException as e:
+			self.ref_compilator_output = "reference compilation failed:\n\t%s" %str(e)
+			return False
+
+	def _save_reference_log_file(self):
+		directory = os.path.dirname(self.filepath) + '/'
+		file_basename = self.basename.split(".cflat")[0]
+		os.rename(directory+file_basename + ".log",directory+file_basename + ".ref.log")		
+		
+	def _compile(self):
+		try:
+			self.compiler.compile(self.filepath)
+			return True
+		except TimeoutException as e:
+			self.compilator_output = "Compilator error:\n\t%s\n" %str(e)
+			return False
+		except CompileException as e:
+			self.compilator_output = "Compilator error:\n\t%s\n"%str(e)
+			return False
+
+	def _diff(self):
+		try:
+			LogDiffer.diff(self.filepath)
+			return True
+		except CompareException as e:
+			self.differ_output = 'LogDiffer error:\n\t'+str(e)
+			return False
+
 class Compiler():
 	compile_timeout = 2
-	def __init__(self,root_path):
-		self.compile_cmd = 'java -jar ' + root_path + 'Cflat.jar -testparser '
-		self.root_path = root_path
-		self.build_compiler()
-
-	def build_compiler(self):
-		cur_dir = os.getcwd()
-		os.chdir(self.root_path)
-		process = subprocess.Popen("ant")
-		process.communicate()
-		os.chdir(cur_dir)
-
+	def __init__(self,compiler_path):
+		self.compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
 		
 	def compile(self,filepath):
 		def target():
@@ -95,30 +177,36 @@ class Compiler():
 		thread = threading.Thread(target=target)
 		thread.start()
 		thread.join(self.compile_timeout)
-		check_thread()
+		check_thread()	
 
-class TimeoutException(Exception):
-	def __init__(self):
-		Exception.__init__(self,"Timeout after %d seconds" %Compiler.compile_timeout)
+class LogDiffer():
 
-class CompileException(Exception):
-	def __init__(self, message):
-		Exception.__init__(self,message)
+	def diff(filepath):
+
+		file_basename = os.path.basename(filepath).split(".cflat")[0]
+		full_path = os.path.dirname(filepath) + '/' + file_basename
+		try:
+			exp_file = open(full_path + '.ref.log','r')
+			act_file = open(full_path + '.log','r')
+		except Exception as e:
+			raise CompareException("no diffing performed: %s" %str(e))
+
+		LogDiffer._compare(exp_file,act_file)
+
+	def _compare(exp_file,act_file):
+		exp_line = ""
+		act_line = ""
+		act_line_number = 0
+		for act_line in act_file:
+			act_line_number += 1
+			if act_line.startswith('Parser:'):
+				while not exp_line.startswith("Parser:"):
+					exp_line = exp_file.readline()
+				exp_line = exp_line.split("Parser:")[1].strip()
+				act_line = act_line.split("Parser:")[1].strip()
+				if not exp_line == act_line:
+					raise CompareException("%s expected, but found %s on line number %d" %(exp_line,act_line,act_line_number))
 
 
-def parse_args():
-	parser = argparse.ArgumentParser(description='automate your compile testing')
-	parser.add_argument('path', nargs='?', default=testfiles_dir,help='optionaly specify path to a file or folder to test')
-	return parser.parse_args()
-
-def get_target_files(path):
-	if path.endswith('/'):
-		return get_cflat_files(path)
-	else :
-		return [path]	
-
-def get_cflat_files(dir_path):
-	filelist = [ dir_path + f  for f in os.listdir(dir_path) if f.endswith(".cflat")]
-	return filelist
 
 test = CompileTester()
