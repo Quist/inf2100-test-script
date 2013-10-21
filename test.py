@@ -4,7 +4,6 @@ import subprocess,threading
 import os
 import argparse
 
-#Define paths
 testfile_dirname = os.path.dirname(sys.argv[0]) + '/testfiles/'
 
 class CompileTester:
@@ -14,9 +13,9 @@ class CompileTester:
 		self.project_root_path = self.path + '/../'
 
 		if self.build() != 0:
-			print("\nbuild failed, exiting..")
+			print("\n%sbuild failed, exiting..%s" %(bcolors.FAIL,bcolors.ENDC))
 			exit()
-		print("\nant build successfull")
+		print("\n%sant build successfull%s"%(bcolors.OKGREEN,bcolors.ENDC))
 
 		CompileTester.clean(testfile_dirname)
 		#Do the testing
@@ -47,7 +46,10 @@ class CompileTester:
 			successfull_compilations += test.result
 			print("--------------------------------------------------")
 
-		print("\n%d/%d successfull tests\n" %(successfull_compilations,len(testcases)))
+		if successfull_compilations == len(testcases):
+			print("\n%s%d/%d%s successfull tests\n" %(bcolors.OKGREEN,successfull_compilations,len(testcases),bcolors.ENDC))
+		else:
+			print("\n%s%d/%d%s successfull tests\n" %(bcolors.FAIL,successfull_compilations,len(testcases),bcolors.ENDC))
 
 	def get_testcases(self,path):
 		compiler = Compiler(self.project_root_path+'Cflat.jar')
@@ -95,9 +97,9 @@ class Testcase():
 	def __str__(self):
 		output = "%s: " %self.basename
 		if self.result == 1:
-			output+=("OK")
+			output+=(bcolors.OKGREEN + "OK" +bcolors.ENDC)
 			return output
-		output += "ERROR\n"
+		output += bcolors.FAIL + "ERROR\n" + bcolors.ENDC
 
 		output +=self.ref_compilator_output
 		output +=self.compilator_output
@@ -213,5 +215,20 @@ class LogDiffer():
 		exp_file.close()
 		act_file.close()
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+    def disable(self):
+        self.HEADER = ''
+        self.OKBLUE = ''
+        self.OKGREEN = ''
+        self.WARNING = ''
+        self.FAIL = ''
+        self.ENDC = ''
 
 test = CompileTester()
