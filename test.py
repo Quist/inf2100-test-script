@@ -11,6 +11,8 @@ class CompileTester:
 		self.args = CompileTester.parse_args()
 		self.path = os.path.dirname(sys.argv[0])
 		self.project_root_path = self.path + '/../'
+		
+		Compiler.compile_timeout = self.args.timeout
 
 		if self.build() != 0:
 			print("\n%sbuild failed, exiting..%s" %(bcolors.FAIL,bcolors.ENDC))
@@ -25,6 +27,7 @@ class CompileTester:
 
 	def parse_args():
 		parser = argparse.ArgumentParser(description='automate your compile testing')
+		parser.add_argument('-t',help='set timeout for compiler',dest='timeout',type=int,default=5)
 		parser.add_argument('path', nargs='?', default=testfile_dirname,\
 			help='specify path/file to test')
 		return parser.parse_args()
@@ -157,7 +160,7 @@ class Testcase():
 			return False
 
 class Compiler():
-	compile_timeout = 5
+	compile_timeout = None
 	def __init__(self,compiler_path):
 		self.compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
 		
