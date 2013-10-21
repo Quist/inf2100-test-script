@@ -58,7 +58,7 @@ class CompileTester:
 				testcases.append(Testcase(f,compiler,ref_compiler))
 			return testcases
 		else :
-			return Testcase(path,compiler,ref_compiler)
+			return [Testcase(path,compiler,ref_compiler)]
 
 	def save_log_files(_dir):
 		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")]
