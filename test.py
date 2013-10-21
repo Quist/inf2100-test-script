@@ -26,7 +26,8 @@ class CompileTester:
 
 	def parse_args():
 		parser = argparse.ArgumentParser(description='automate your compile testing')
-		parser.add_argument('path', nargs='?', default=testfile_dirname,help='specify path/file to test')
+		parser.add_argument('path', nargs='?', default=testfile_dirname,\
+			help='specify path/file to test')
 		return parser.parse_args()
 
 	def build(self):
@@ -61,13 +62,9 @@ class CompileTester:
 		else :
 			return [Testcase(path,compiler,ref_compiler)]
 
-	def save_log_files(_dir):
-		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s")]
-		for f in filelist:
-			os.rename(_dir + f,output_dir+f)
-
 	def clean(_dir):
-		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or f.endswith(".s") or f.endswith(".ref.log")  ]
+		filelist = [ f for f in os.listdir(_dir) if f.endswith(".log") or \
+			f.endswith(".s") or f.endswith(".ref.log")  ]
 		for f in filelist:
 			os.remove(_dir +f)
 
@@ -165,7 +162,8 @@ class Compiler():
 	def compile(self,filepath):
 		def target():
 			cmd = self.compile_cmd + filepath
-			self.process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+			self.process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,\
+				stderr=subprocess.PIPE)
 			self.err_out = str(self.process.communicate()[1])
 
 		def check_thread():
@@ -208,8 +206,12 @@ class LogDiffer():
 				exp_line = exp_line.split("Parser:")[1].strip()
 				act_line = act_line.split("Parser:")[1].strip()
 				if not exp_line == act_line:
-					raise CompareException("%s expected, but found %s on line number %d in %s" %(exp_line,act_line,act_line_number,basename))
-
+					exp_file.close()
+					act_file.close()
+					raise CompareException("%s expected, but found %s on line number %d in %s"\
+						%(exp_line,act_line,act_line_number,basename))
+		exp_file.close()
+		act_file.close()
 
 
 test = CompileTester()
