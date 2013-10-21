@@ -155,7 +155,7 @@ class Testcase():
 			return False
 
 class Compiler():
-	compile_timeout = 2
+	compile_timeout = 5
 	def __init__(self,compiler_path):
 		self.compile_cmd = 'java -jar ' + compiler_path + ' -testparser '
 		
