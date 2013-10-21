@@ -12,8 +12,8 @@ Features:
 How-to:
 --------------
 Download the entire folder into your project root folder.
-Just run test.py in the inf2100-test-script folder
-Enjoy
+Just run test.py in the inf2100-test-script folder.
+=>Enjoy
 
 You can also specify the path to a file or folder as an argument to the script.
 
