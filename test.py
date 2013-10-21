@@ -26,7 +26,7 @@ class CompileTester:
 
 	def parse_args():
 		parser = argparse.ArgumentParser(description='automate your compile testing')
-		parser.add_argument('path', nargs='?', default=testfile_dirname,help='optionaly specify path to a file or folder to test')
+		parser.add_argument('path', nargs='?', default=testfile_dirname,help='specify path/file to test')
 		return parser.parse_args()
 
 	def build(self):
@@ -130,6 +130,8 @@ class Testcase():
 		except CompileException as e:
 			self.ref_compilator_output = "reference compilation failed:\n\t%s" %str(e)
 			return False
+		except TimeoutException as e:
+			self.ref_compilator_output = "reference compilation failed:\n\t%s" %str(e)
 
 	def _save_reference_log_file(self):
 		directory = os.path.dirname(self.filepath) + '/'
