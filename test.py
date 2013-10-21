@@ -20,7 +20,8 @@ class CompileTester:
 
 		CompileTester.clean(testfile_dirname)
 		#Do the testing
-		print("starting testing..\n")
+		print("starting testing..")
+		print("compilation timeout: %d seconds\n" %Compiler.compile_timeout)
 		self.test()
 
 	def parse_args():
