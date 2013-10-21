@@ -74,11 +74,11 @@ class TimeoutException(Exception):
 
 class CompileException(Exception):
 	def __init__(self, message):
-		Exception.__init__(self,message)
+		Exception.__init__(self,"\"%s\"" % message.strip('\n'))
 
 class CompareException(Exception):
 	def __init__(self, message):
-		Exception.__init__(self,message)	
+		Exception.__init__(self,"\"%s\"" % message)	
 
 class Testcase():
 	def __init__(self,filepath,compiler,ref_compiler):
@@ -125,10 +125,10 @@ class Testcase():
 			self._save_reference_log_file()
 			return True
 		except CompileException as e:
-			self.ref_compilator_output = "reference compilation failed:\n\t%s" %str(e)
+			self.ref_compilator_output = "reference compilation failed:\n\t%s\n" %str(e)
 			return False
 		except TimeoutException as e:
-			self.ref_compilator_output = "reference compilation failed:\n\t%s" %str(e)
+			self.ref_compilator_output = "reference compilation failed:\n\t%s\n" %str(e)
 
 	def _save_reference_log_file(self):
 		directory = os.path.dirname(self.filepath) + '/'
@@ -140,10 +140,10 @@ class Testcase():
 			self.compiler.compile(self.filepath)
 			return True
 		except TimeoutException as e:
-			self.compilator_output = "\tCompilator error:\n\t\t%s\n" %str(e)
+			self.compilator_output = "\tCompilator:\n\t\t%s\n" %str(e)
 			return False
 		except CompileException as e:
-			self.compilator_output = "\tCompilator error:\n\t\t%s\n"%str(e)
+			self.compilator_output = "\tCompilator:\n\t\t%s\n" %str(e)
 			return False
 
 	def _diff(self):
@@ -151,7 +151,7 @@ class Testcase():
 			LogDiffer.diff(self.filepath)
 			return True
 		except CompareException as e:
-			self.differ_output = '\tLogDiffer error:\n\t\t'+str(e)
+			self.differ_output = '\tLogFile differ:\n\t\t'+str(e)
 			return False
 
 class Compiler():
@@ -164,7 +164,7 @@ class Compiler():
 			cmd = self.compile_cmd + filepath
 			self.process = subprocess.Popen(cmd.split(),stdout=subprocess.PIPE,\
 				stderr=subprocess.PIPE)
-			self.err_out = str(self.process.communicate()[1])
+			self.err_out = (self.process.communicate()[1].decode('utf-8'))
 
 		def check_thread():
 			if thread.is_alive():
